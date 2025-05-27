@@ -1,0 +1,71 @@
+
+//-----------------------------------------------------------
+// 機能名　：RSSフィードLINE送信.gs
+// 機能概要：RSSフィードの内容をLINEに送信する
+// 引数  　：なし
+// 作成日　：2025.05.22
+//-----------------------------------------------------------
+
+// 現在日時を「YYYY/MM/DD HH:mm」形式で取得する関数
+function getFormattedDate() {
+  const now = new Date();  // 現在の日時を取得
+  const yyyy = now.getFullYear();                      // 年
+  const mm = String(now.getMonth() + 1).padStart(2, '0'); // 月（0始まりのため+1）
+  const dd = String(now.getDate()).padStart(2, '0');      // 日
+  const hh = String(now.getHours()).padStart(2, '0');     // 時
+  const min = String(now.getMinutes()).padStart(2, '0');  // 分
+  return `${yyyy}/${mm}/${dd} ${hh}:${min}`; // フォーマットして返却
+}
+
+// RSSフィードを読み込み、内容をLINEに送信するメイン関数
+function notifyRSSToLINE() {
+  const rssUrl = "https://rss.app/feeds/_MXej92d3nzGSnaDS.xml"; // 対象のRSSフィードURL
+  const token = "/WasjrDq1cZe0IXi3priP3KolyPoMIoaggWbLpTsiHKRTbw+WWVXW5261eP+slUgx1MJo1t95JfBNkSRneAOEWj+n5OJKgGaCJcbRQ9BfypMsFYdXCzezPwDI832ZDc65fTf+kFzrG4EBo1mes0YigdB04t89/1O/w1cDnyilFU="; // LINE Messaging APIのアクセストークン（※実際はスクリプトプロパティ等に保存推奨）
+
+  let content = UrlFetchApp.fetch(rssUrl).getContentText(); // RSSフィードのXMLをテキストで取得
+
+  // XML解析前に不正なエンティティをサニタイズ（&が多重に含まれるとパースエラーになるため）
+  content = content.replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;');
+  const xml = XmlService.parse(content); // XMLをパース
+  const items = xml.getRootElement().getChild("channel").getChildren("item"); // <channel>内の<item>要素を取得
+
+  try {
+    let messages = [];
+
+    // 📌 現在日時を最初に追加
+    const now = getFormattedDate();
+    messages.push(`🕒 送信日時: ${now}`);
+
+    // 各RSSアイテムのタイトルとリンクを整形してメッセージに追加
+    items.forEach(item => {
+      const title = item.getChildText("title"); // 記事タイトル
+      const link = item.getChildText("link");   // 記事リンク
+      messages.push(`📰 ${title}\n🔗 ${link}`);
+    });
+
+    // LINEに送信するメッセージペイロードを構築
+    const payload = {
+      messages: [{
+        type: "text",
+        text: messages.join("\n\n") // メッセージを改行で連結
+      }]
+    };
+
+    // LINE Messaging APIにPOSTリクエストを送信
+    UrlFetchApp.fetch("https://api.line.me/v2/bot/message/broadcast", {
+      method: "post",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      payload: JSON.stringify(payload)
+    });
+
+    Logger.log(`✅ 読み込み成功: ${items.length}件`);
+
+  } catch (e) {
+    // エラーログを出力
+    Logger.log(`❌ エラー発生`);
+    Logger.log(e.message);
+  }
+}
