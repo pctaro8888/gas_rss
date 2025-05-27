@@ -1,0 +1,34 @@
+//-----------------------------------------------------------
+// 機能名　：LINE送信トリガー.gs
+// 機能概要：指定時間にLINEに送信する
+// 引数  　：なし
+// 作成日　：2025.05.22
+//-----------------------------------------------------------
+function createTimeTriggers() {
+  // 既存のトリガーをすべて削除（重複や無駄なトリガーを防ぐため）
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    ScriptApp.deleteTrigger(triggers[i]);
+  }
+
+  // ✅ 朝7時に notifyRSSToLINE 関数を実行するトリガーを作成
+  ScriptApp.newTrigger("notifyRSSToLINE")
+    .timeBased()
+    .atHour(7)         // 午前7時
+    .everyDays(1)      // 毎日
+    .create();
+
+  // ✅ 昼12時に notifyRSSToLINE 関数を実行するトリガーを作成
+  ScriptApp.newTrigger("notifyRSSToLINE")
+    .timeBased()
+    .atHour(12)        // 午後12時
+    .everyDays(1)      // 毎日
+    .create();
+
+  // ✅ 夕方18時に notifyRSSToLINE 関数を実行するトリガーを作成
+  ScriptApp.newTrigger("notifyRSSToLINE")
+    .timeBased()
+    .atHour(18)        // 午後6時
+    .everyDays(1)      // 毎日
+    .create();
+}
